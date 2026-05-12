@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Length Unit Converter</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 460px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  }
+
+  h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 6px;
+    font-size: 1.6rem;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: #777;
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  input[type="number"] {
+    flex: 2;
+    padding: 12px 14px;
+    font-size: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="number"]:focus {
+    border-color: #667eea;
+  }
+
+  select {
+    flex: 1;
+    padding: 12px 10px;
+    font-size: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    outline: none;
+  }
+
+  select:focus {
+    border-color: #667eea;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 24px;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+
+  button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(102, 126, 234, 0.4);
+  }
+
+  button:active { transform: translateY(0); }
+
+  .results {
+    border-top: 1px solid #eee;
+    padding-top: 18px;
+  }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: #f7f7fb;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+
+  .result-row .label {
+    color: #555;
+    font-weight: 500;
+  }
+
+  .result-row .value {
+    color: #333;
+    font-weight: 600;
+    font-family: 'Consolas', monospace;
+  }
+
+  .error {
+    color: #c0392b;
+    text-align: center;
+    font-size: 0.9rem;
+    min-height: 1.2em;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Length Unit Converter</h1>
+    <p class="subtitle">Convert between km, m, cm, foot, inch, and mile</p>
+
+    <div class="input-row">
+      <input type="number" id="value" placeholder="Enter value" step="any" />
+      <select id="fromUnit">
+        <option value="km">Kilometer (km)</option>
+        <option value="m" selected>Meter (m)</option>
+        <option value="cm">Centimeter (cm)</option>
+        <option value="ft">Foot (ft)</option>
+        <option value="in">Inch (in)</option>
+        <option value="mi">Mile (mi)</option>
+      </select>
+    </div>
+
+    <button id="convertBtn">Convert</button>
+
+    <div class="error" id="error"></div>
+
+    <div class="results" id="results"></div>
+  </div>
+
+<script>
+  // All factors are relative to 1 meter.
+  const TO_METER = {
+    km: 1000,
+    m:  1,
+    cm: 0.01,
+    ft: 0.3048,
+    in: 0.0254,
+    mi: 1609.344
+  };
+
+  const LABELS = {
+    km: 'Kilometer (km)',
+    m:  'Meter (m)',
+    cm: 'Centimeter (cm)',
+    ft: 'Foot (ft)',
+    in: 'Inch (in)',
+    mi: 'Mile (mi)'
+  };
+
+  const valueInput = document.getElementById('value');
+  const fromSelect = document.getElementById('fromUnit');
+  const resultsEl  = document.getElementById('results');
+  const errorEl    = document.getElementById('error');
+
+  function format(n) {
+    if (!isFinite(n)) return '—';
+    if (n === 0) return '0';
+    const abs = Math.abs(n);
+    if (abs >= 1e9 || abs < 1e-4) return n.toExponential(4);
+    return parseFloat(n.toFixed(6)).toString();
+  }
+
+  function convert() {
+    errorEl.textContent = '';
+    resultsEl.innerHTML = '';
+
+    const raw = valueInput.value.trim();
+    if (raw === '') {
+      errorEl.textContent = 'Please enter a value.';
+      return;
+    }
+    const val = Number(raw);
+    if (Number.isNaN(val)) {
+      errorEl.textContent = 'Invalid number.';
+      return;
+    }
+
+    const fromUnit = fromSelect.value;
+    const meters = val * TO_METER[fromUnit];
+
+    Object.keys(TO_METER).forEach(unit => {
+      if (unit === fromUnit) return;
+      const converted = meters / TO_METER[unit];
+      const row = document.createElement('div');
+      row.className = 'result-row';
+      row.innerHTML = `<span class="label">${LABELS[unit]}</span>
+                       <span class="value">${format(converted)}</span>`;
+      resultsEl.appendChild(row);
+    });
+  }
+
+  document.getElementById('convertBtn').addEventListener('click', convert);
+  valueInput.addEventListener('keydown', e => { if (e.key === 'Enter') convert(); });
+  valueInput.addEventListener('input', convert);
+  fromSelect.addEventListener('change', convert);
+</script>
+</body>
+</html>
